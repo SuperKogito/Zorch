@@ -1,109 +1,158 @@
 const std = @import("std");
-const Tensor = @import("tensor.zig").Tensor;
-const Layer = @import("layers.zig").Layer;
-const Linear = @import("layers.zig").Linear;
-const activations = @import("activations.zig");
-const Model = @import("sequential.zig").Model;
-const SGD = @import("optimizers.zig").SGD;
-const MSE = @import("losses.zig").MSE;
-const dtypes = @import("math/ndarray/dtypes.zig");
-const TensorError = @import("errors.zig").TensorError;
-const NdArray = @import("math/ndarray/ndarray.zig").NdArray;
+const zorch = @import("zorch.zig");
+
+const utils = zorch.utils;
+const dtypes = zorch.dtypes;
+const logger = zorch.logger;
+
+const Tensor = zorch.Tensor;
+const NdArray = zorch.NdArray;
+const autograd = zorch.autograd;
+
+pub const Operation = autograd.Operation;
+const DType = dtypes.DType;
+pub const DataType = dtypes.DataType;
+pub const NumericUnion = dtypes.NumericUnion;
+const TensorError = zorch.errors.TensorError;
+const NdarrayError = zorch.errors.NdarrayError;
+
+const Layer = zorch.nn.Layer;
+const Linear = zorch.nn.Linear;
+const SGD = zorch.optim.SGD;
+const MSE = zorch.nn.MSE;
+const F = zorch.functional;
 
 pub const Network = struct {
-    model: Model, // Use Model instead of Sequential
-    optimizer: SGD, // Optimizer for updating parameters
     allocator: std.mem.Allocator,
+    layers: std.ArrayList(*Layer),
+    optimizer: SGD,
 
     pub fn init(allocator: std.mem.Allocator, layers_list: []*Layer, learning_rate: f32, momentum: f32) !Network {
-        var model = try Model.init(allocator);
-        errdefer model.deinit();
-
-        // Add all layers to the model
+        var layers = std.ArrayList(*Layer).init(allocator);
         for (layers_list) |layer| {
-            try model.add_layer(layer);
+            try layers.append(layer);
         }
 
-        std.debug.print("{any}\n", .{model.layers.items});
-
-        // Initialize the optimizer with a pointer to the model
-        const optimizer = try SGD.init(allocator, &model, learning_rate);
         _ = momentum;
+        const optimizer = try SGD.init(allocator, layers, learning_rate);
+
         return Network{
-            .model = model, // Store a pointer to the model
-            .optimizer = optimizer,
             .allocator = allocator,
+            .layers = layers,
+            .optimizer = optimizer,
         };
     }
 
-    pub fn deinit(self: *Network) void {
-        self.optimizer.deinit();
-        self.model.deinit(); // Deinitialize the model
+    pub fn zero_grad(self: *Network) void {
+        for (self.layers.items) |layer| {
+            layer.zero_grad();
+        }
     }
+
+    pub fn parameters(self: *Network) !std.ArrayList(*Tensor) {
+        var params = std.ArrayList(*Tensor).init(self.allocator);
+        for (self.layers.items) |layer| {
+            switch (layer.*) {
+                .Linear => |linear| {
+                    try params.append(linear.weights);
+                    try params.append(linear.biases);
+                },
+            }
+        }
+        return params;
+    }
+
+    pub fn deinit(self: *Network) void {
+        for (self.layers.items) |layer| {
+            layer.deinit();
+        }
+        self.layers.deinit();
+        self.optimizer.deinit();
+    }
+
+    pub fn forward(self: *Network, input: *Tensor) !*Tensor {
+        var output = input;
+        for (self.layers.items) |layer| {
+            output = try layer.forward(output);
+        }
+        return output;
+    }
+
     pub fn train(self: *Network, inputs: *Tensor, targets: *Tensor, n_epochs: usize) ![]f32 {
         var losses = try self.allocator.alloc(f32, n_epochs);
         errdefer self.allocator.free(losses);
 
         const num_samples = inputs.shape[0];
-        const in_grad = try NdArray.ones(self.allocator, &[_]usize{ 2, 2 }, dtypes.DataType.f32);
 
         for (0..n_epochs) |epoch| {
             var total_loss: f32 = 0.0;
-            std.debug.print("Epoch: {}\n", .{epoch});
+            std.debug.print("***\n", .{});
+            std.debug.print("**\n", .{});
+            std.debug.print("*\n", .{});
 
-            for (2..num_samples) |i| {
-                // Slice the input and target tensors for the current sample
+            for (0..num_samples) |i| {
                 const input_tensor = try inputs.slice(0, i, i + 1);
                 defer input_tensor.deinit();
 
                 const target_tensor = try targets.slice(0, i, i + 1);
                 defer target_tensor.deinit();
 
-                // std.debug.print("X: ", .{});
-                // try input_tensor.info();
-                // input_tensor.label = "x";
-                // std.debug.print("Y: ", .{});
-                // try target_tensor.info();
-                // target_tensor.label = "y";
-
                 // Forward pass
-                const output = try self.model.forward(input_tensor);
-                defer output.deinit();
-                // std.debug.print("y: ", .{});
-                // try output.info();
-                // std.debug.print("----\n", .{});
-                std.debug.print("Layers Count when accessed via Model    : {}\n", .{self.model.layers.items.len});
-                std.debug.print("Layers Count when accessed via Optimizer: {}\n", .{self.optimizer.model.layers.items.len});
+                const output = try self.forward(input_tensor);
+                defer output.deinit(); // Deallocate output after backward pass
 
                 // Compute loss
                 const loss = try MSE.forward(output, target_tensor);
+
+                std.debug.print(" * Target     :  ", .{});
+                try target_tensor.info();
+                std.debug.print(" * Prediction :  ", .{});
+                try output.info();
+                std.debug.print(" -> Loss      :  ", .{});
+                try loss.print();
+
+                // Get loss value
                 const val = try loss.get(&[_]usize{0});
-                total_loss += val.f32; // Assuming loss is a scalar tensor
-                std.debug.print("total_loss =  {any}\n", .{total_loss});
+                total_loss += val.f32;
+                // std.debug.print("-> loss val   : {any}\n", .{val.f32});
+                // std.debug.print("-> total loss : {any}\n", .{total_loss});
 
-                // Backward pass (gradient computation)
-                try loss.backward(in_grad);
-                std.debug.print("Layers Count: {}\n", .{self.model.layers.items.len});
+                // Backward pass
+                std.debug.print("--------------------------\n", .{});
+                std.debug.print("LOSS BACKWARD\n", .{});
+                std.debug.print("--------------------------\n", .{});
+                try loss.backward(null);
 
-                // Update parameters
+                const params = try self.parameters();
+
+                // std.debug.print("--------------------------\n", .{});
+                // std.debug.print("OPTIMIZER STEP\n", .{});
+                // std.debug.print("--------------------------\n", .{});
+                // for (params.items) |param| {
+                //     try param.info();
+                // }
+
                 try self.optimizer.step();
 
-                // Zero gradients
-                self.model.zero_grad();
-            }
-            std.debug.print("====== \n", .{});
+                // for (params.items) |param| {
+                //     try param.info();
+                // }
 
-            // Record average loss for this epoch
+                // Zero gradients
+                self.zero_grad();
+                params.deinit();
+                std.debug.print("**********************************\n", .{});
+                defer loss.deinit(); // Deallocate loss after backward pass
+
+            }
+
             losses[epoch] = total_loss / @as(f32, @floatFromInt(num_samples));
+            std.debug.print("**********************************\n", .{});
+            std.debug.print(" Epoch {}: Loss = {}  \n", .{ epoch, losses[epoch] });
+            std.debug.print("**********************************\n", .{});
         }
 
         return losses;
-    }
-    pub fn forward(self: *Network, input_tensor: *Tensor) TensorError!*Tensor {
-
-        // Forward pass
-        const output = try self.model.forward(input_tensor);
-        return output;
     }
 };
 
@@ -136,11 +185,20 @@ pub fn main() !void {
 
     // Create layers
     const input_size = 2;
-    const hidden_size = 4;
+    const hidden_size = 3;
     const output_size = 1;
 
-    var linear1 = try Linear.init(allocator, input_size, hidden_size, activations.relu);
-    var linear2 = try Linear.init(allocator, hidden_size, output_size, null);
+    var linear1 = try Linear.init(allocator, input_size, hidden_size, F.relu);
+    var linear2 = try Linear.init(allocator, hidden_size, output_size, F.relu);
+    linear1.weights.label = try std.fmt.allocPrint(allocator, "l1.w", .{});
+    linear1.biases.label = try std.fmt.allocPrint(allocator, "l1.b", .{});
+    linear2.weights.label = try std.fmt.allocPrint(allocator, "l2.w", .{});
+    linear2.biases.label = try std.fmt.allocPrint(allocator, "l2.b", .{});
+
+    std.debug.print("l1.w: {any}\n", .{linear1.weights.shape});
+    std.debug.print("l1.b: {any}\n", .{linear1.biases.shape});
+    std.debug.print("l2.w: {any}\n", .{linear2.weights.shape});
+    std.debug.print("l2.b: {any}\n", .{linear2.biases.shape});
 
     // Wrap layers in the `Layer` union
     var layer1 = Layer{ .Linear = &linear1 };
@@ -150,21 +208,20 @@ pub fn main() !void {
     var layers = [_]*Layer{ &layer1, &layer2 };
 
     // Initialize the network
-    var network = try Network.init(allocator, layers[0..], 0.01, 0.9);
+    var network = try Network.init(allocator, layers[0..], 0.1, 0.9);
     defer network.deinit();
-    // std.debug.print("{any}\n", .{network.optimizer.model.layers.items});
 
     // Train the network
     std.debug.print("======== \n", .{});
     std.debug.print("TRAINING \n", .{});
     std.debug.print("======== \n", .{});
-    const n_epochs = 10;
+    const n_epochs = 7;
     const losses = try network.train(dataset.inputs, dataset.outputs, n_epochs);
     defer allocator.free(losses);
 
     // Print losses
     for (losses, 0..) |loss, epoch| {
-        std.debug.print("Epoch {}: Loss = {}\n", .{ epoch, loss });
+        std.debug.print("Epoch {}: Loss = {d:.9}\n", .{ epoch, loss });
     }
 
     std.debug.print("======= \n", .{});
@@ -179,6 +236,10 @@ pub fn main() !void {
         const output = try network.forward(input_tensor);
         defer output.deinit();
 
-        std.debug.print("Input: {any}, Output: {any}\n", .{ input_tensor.data, output.data });
+        std.debug.print("+---------- INPUT :  ", .{});
+        try input_tensor.info();
+
+        std.debug.print("└── PRED  :  ", .{});
+        try output.info();
     }
 }
