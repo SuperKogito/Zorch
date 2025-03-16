@@ -6,16 +6,25 @@
 Zorch is a lightweight, high-performance tensor library written in Zig. It provides a flexible and efficient framework for numerical computations, automatic differentiation, and machine learning. The library is designed to be simple, modular, and easy to extend.
 
 
+***NB: The library is still experimental and not stable enough***
+
 #  Table of Contents
 
 - [Zorch: A Tensor Library with a Pytorch-like API in Zig](#zorch-a-tensor-library-with-a-pytorch-like-api-in-zig)
 - [Table of Contents](#table-of-contents)
-  - [Features](#features)
+  - [Features and To-dos](#features-and-to-dos)
+    - [Tensor, Ndarray](#tensor-ndarray)
+    - [Autograd](#autograd)
+    - [Neural Networks](#neural-networks)
+    - [Optimization](#optimization)
+    - [Utilities](#utilities)
+    - [Testing](#testing)
+    - [Documentation](#documentation)
   - [Project Structure](#project-structure)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Building the Project](#building-the-project)
-  - [Documentation](#documentation)
+  - [Documentation](#documentation-1)
   - [Examples](#examples)
     - [Creating a Tensor](#creating-a-tensor)
     - [Performing Tensor Operations](#performing-tensor-operations)
@@ -23,15 +32,70 @@ Zorch is a lightweight, high-performance tensor library written in Zig. It provi
   - [Contributing](#contributing)
   - [License](#license)
 
-## Features
+## Features and To-dos
 
-- **Multi-dimensional Tensors**: Support for tensors of arbitrary shapes and data types.
-- **Automatic Differentiation**: Built-in support for backpropagation and gradient computation.
-- **Optimization**: Includes common optimization algorithms like Stochastic Gradient Descent (SGD).
-- **Activation Functions**: Implements popular activation functions such as ReLU, Tanh, Sigmoid, and Softmax.
-- **Broadcasting**: Supports broadcasting for element-wise operations.
-- **Custom Errors**: Comprehensive error handling for tensor operations.
-- **Logging**: Configurable logging for debugging and monitoring.
+### Tensor, Ndarray
+- [x] `Tensor, Ndarray` struct
+- [x] `Tensor, Ndarray` creation (`from_value`, `from_data`, `zeros`, `ones`, `random`)
+- [x] `Tensor, Ndarray` addition (`add`, `add_scalar`)
+- [x] `Tensor, Ndarray` subtraction (`sub`, `sub_scalar`)
+- [x] `Tensor, Ndarray` multiplication (`mul`, `mul_scalar`)
+- [x] `Tensor, Ndarray` division (`div`, `div_scalar`)
+- [x] `Tensor, Ndarray` power (`pow`, `pow_scalar`)
+- [x] `Tensor, Ndarray` matrix multiplication (`matmul`)
+- [x] `Tensor, Ndarray` reshaping (`reshape`)
+- [x] `Tensor, Ndarray` slicing (`slice`)
+- [x] `Tensor, Ndarray` broadcasting (`broadcast_to`)
+- [x] `Tensor, Ndarray` element-wise operations (`equal`, `greater_than`, `less_than`)
+- [x] `Tensor, Ndarray` reduction operations (`sum`, `mean`, `min`, `max`, `argmin`, `argmax`)
+- [x] `Tensor, Ndarray` activation functions (`relu`, `tanh`, `sigmoid`, `softmax`)
+- [x] `Tensor, Ndarray` logging and printing (`print`, `info`)
+- [x] `Tensor, Ndarray` broadcasting support (`broadcast_to`)
+- [ ] Support for sparse tensors
+- [ ] Support for GPU acceleration
+- [ ] Support for BLAS acceleration
+- [ ] Concatenation and stacking operations
+
+### Autograd
+- [x] Backpropagation for (`addition`, `multiplication`, `substraction`, `division`, etc.)
+- [x] Backpropagation for matrix multiplication
+- [x] Gradient accumulation
+- [x] Zeroing gradients (`zero_grad`)
+- [ ] Support caching between forward and backward functions
+- [ ] Backpropagation for more operations (e.g., division, power)
+- [ ] Support for higher-order derivatives
+- [ ] Memory optimization for computation graphs
+- [ ] Memory optimization for computation graphs
+
+### Neural Networks
+- [x] Linear layer
+- [ ] Convolution layers (`Conv2D`, `Conv1D`, etc.)
+- [ ] Pooling layers (`MaxPool`, `MeanPool`, etc.)
+- [ ] Recurrent layers (`RNN`, `LSTM`, etc.)
+- [ ] Loss functions (e.g., CrossEntropy, MSE)
+
+### Optimization
+- [x] Stochastic Gradient Descent (SGD)
+- [ ] Learning rate scheduling
+- [ ] Implement more optimizers (e.g., Adam, RMSprop)
+- [ ] Learning rate schedulers (e.g., StepLR, ReduceOnPlateau)
+  
+### Utilities
+- [x] Custom error handling (`TensorError`, `NdarrayError`)
+- [x] Logging with timestamps and colors
+- [x] Data type conversion (`convert_value_to_dtype`)
+
+### Testing
+- [ ] Add unit tests for all modules
+- [ ] Add integration tests for end-to-end workflows
+  
+### Documentation
+- [x] Inline docstrings for all functions
+- [x] Generated HTML documentation
+- [ ] Add more examples and tutorials
+- [ ] Improve inline documentation
+
+
 
 ## Project Structure
 
@@ -178,5 +242,3 @@ try y.backward(null);
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-
