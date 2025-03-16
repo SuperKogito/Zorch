@@ -86,6 +86,7 @@ Zorch is a lightweight, high-performance tensor library written in Zig. It provi
 - [x] Data type conversion (`convert_value_to_dtype`)
 
 ### Testing
+- [x] Unit tests for most modules
 - [ ] Add unit tests for all modules
 - [ ] Add integration tests for end-to-end workflows
   
