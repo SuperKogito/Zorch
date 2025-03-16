@@ -7,19 +7,14 @@ const logger = zorch.logger;
 
 const Tensor = zorch.Tensor;
 const NdArray = zorch.NdArray;
-const autograd = zorch.autograd;
 
-pub const Operation = autograd.Operation;
-const DType = dtypes.DType;
-pub const DataType = dtypes.DataType;
-pub const NumericUnion = dtypes.NumericUnion;
-const TensorError = zorch.errors.TensorError;
-const NdarrayError = zorch.errors.NdarrayError;
+const datasets = zorch.datasets;
+const autograd = zorch.autograd;
 
 const Layer = zorch.nn.Layer;
 const Linear = zorch.nn.Linear;
 const SGD = zorch.optim.SGD;
-const MSE = zorch.nn.MSE;
+const MSE = zorch.nn.MSELoss;
 const F = zorch.functional;
 
 pub const Network = struct {
@@ -156,28 +151,13 @@ pub const Network = struct {
     }
 };
 
-pub fn create_xor_dataset(allocator: std.mem.Allocator) !struct { inputs: *Tensor, outputs: *Tensor } {
-    const input_data = [_]f32{ 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0 };
-    const input_shape = &[_]usize{ 4, 2 };
-    const xor_inputs = try Tensor.from_data(allocator, input_shape, dtypes.DataType.f32, &input_data, true);
-
-    const output_data = [_]f32{ 0.0, 1.0, 1.0, 0.0 };
-    const output_shape = &[_]usize{ 4, 1 };
-    const xor_outputs = try Tensor.from_data(allocator, output_shape, dtypes.DataType.f32, &output_data, false);
-
-    return .{
-        .inputs = xor_inputs,
-        .outputs = xor_outputs,
-    };
-}
-
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
 
     // Create XOR dataset as Tensors
-    const dataset = try create_xor_dataset(allocator);
+    const dataset = try datasets.create_xor_dataset(allocator);
     defer {
         dataset.inputs.deinit();
         dataset.outputs.deinit();

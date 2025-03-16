@@ -17,6 +17,7 @@ Zorch is a lightweight, high-performance tensor library written in Zig. It provi
     - [Autograd](#autograd)
     - [Neural Networks](#neural-networks)
     - [Optimization](#optimization)
+    - [Datasets](#datasets)
     - [Utilities](#utilities)
     - [Testing](#testing)
     - [Documentation](#documentation)
@@ -79,7 +80,11 @@ Zorch is a lightweight, high-performance tensor library written in Zig. It provi
 - [ ] Learning rate scheduling
 - [ ] Implement more optimizers (e.g., Adam, RMSprop)
 - [ ] Learning rate schedulers (e.g., StepLR, ReduceOnPlateau)
-  
+
+### Datasets
+- [x] Generate XOR training dataset
+- [ ] Parse MNIST dataset
+
 ### Utilities
 - [x] Custom error handling (`TensorError`, `NdarrayError`)
 - [x] Logging with timestamps and colors

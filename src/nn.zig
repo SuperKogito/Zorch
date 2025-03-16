@@ -27,22 +27,22 @@ pub const Loss = struct {
 ///
 /// This instance uses the `MSE.forward` function for its forward pass.
 pub const mse_loss = Loss{
-    .forward = &MSE.forward,
+    .forward = &MSELoss.forward,
 };
 
 /// A structure representing the Mean Squared Error (MSE) loss function.
 ///
 /// This struct contains a single field:
 /// - `base`: The base `Loss` struct.
-pub const MSE = struct {
+pub const MSELoss = struct {
     base: Loss,
 
     /// Initializes a new `MSE` loss function.
     ///
     /// # Returns
     /// A new `MSE` instance.
-    pub fn init() MSE {
-        return MSE{
+    pub fn init() MSELoss {
+        return MSELoss{
             .base = mse_loss,
         };
     }
@@ -54,7 +54,7 @@ pub const MSE = struct {
     /// - `target`: The target tensor.
     ///
     /// # Returns
-    /// A new tensor representing the MSE loss.
+    /// A new tensor representing the MSELoss loss.
     ///
     /// # Errors
     /// Returns an error if the computation fails.
