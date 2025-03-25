@@ -244,7 +244,3 @@ try y.backward(null);
 
 - Contributions are welcome! Please open an issue or submit a pull request for any bugs, feature requests, or improvements.
 - Let me know if you need further help!
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
